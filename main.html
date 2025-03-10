@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detect Shopify</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f8f8f8;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 600px;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+            font-size: 1rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.8rem;
+            font-size: 1rem;
+            border: 2px solid #eee;
+            border-radius: 6px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #000;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            max-width: 200px;
+            margin: 0 auto;
+            padding: 0.8rem 1.5rem;
+            background: #000;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        button:hover {
+            opacity: 0.7;
+        }
+
+        .result {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 1.1rem;
+            display: none;
+        }
+
+        .valid {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .invalid {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .warning {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 1rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Powered By Cloneify</h1>
+        <div class="input-group">
+            <label for="store-url">Check if the site is built with Shopify</label>
+            <input type="url" id="store-url" placeholder="Enter URL (e.g., www.store.com )" required>
+        </div>
+        <button onclick="checkStore()">Check</button>
+        <div id="loading" class="loading">Checking store...</div>
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        async function checkStore() {
+            const urlInput = document.getElementById('store-url');
+            const result = document.getElementById('result');
+            const loading = document.getElementById('loading');
+            let url = urlInput.value.trim().toLowerCase();
+
+            // Reset states
+            result.style.display = 'none';
+            result.classList.remove('valid', 'invalid', 'warning');
+            loading.style.display = 'none';
+
+            // Check if URL is empty
+            if (!url) {
+                showResult('Please enter a store URL', 'warning');
+                return;
+            }
+
+            // Basic URL format validation
+            const urlPattern = /^(https?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w- .\/?%&=]*)?$/;
+            if (!urlPattern.test(url)) {
+                showResult('❌ Invalid URL format. Please enter a valid website address (e.g., mystore.com)', 'warning');
+                return;
+            }
+
+            // Add https:// if not present
+            if (!url.startsWith('http')) {
+                url = 'https://' + url;
+            }
+
+            loading.style.display = 'block';
+
+            try {
+                const parsedUrl = new URL(url);
+
+                
+                if (parsedUrl.hostname.includes('myshopify.com')) {
+                    showResult('✓ This is a Shopify store and is compatible with Cloneify!', 'valid');
+                    loading.style.display = 'none';
+                    return;
+                }
+
+                try {
+                    // Make a request to a CORS proxy to fetch the page content
+                    const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+                    const response = await fetch(proxyUrl);
+                    
+                    if (!response.ok) {
+                        showResult('❌ Unable to access this website. Please check if the URL is correct.', 'warning');
+                        loading.style.display = 'none';
+                        return;
+                    }
+
+                    const text = await response.text();
+                    
+                  
+       // Check for definitive Shopify indicators
+                    const shopifyIndicators = [
+                        'Shopify.theme',
+                        'shopify-section',
+                        'shopify-payment-button',
+                        '/cdn.shopify.com/',
+                        'Shopify.shop',
+                        '"shopify":', 
+                        'shopify-buy-button',
+                        'shopify.loadFeatures'
+                    ];
+
+                    const isShopify = shopifyIndicators.some(indicator => text.includes(indicator));
+
+                    if (isShopify) {
+                        showResult('✓ This is a Shopify store and is compatible with Cloneify!', 'valid');
+                    } else {
+                        showResult('✕ This is not a Shopify store. Cloneify only works with Shopify stores.', 'invalid');
+                    }
+                } catch (e) {
+                    showResult('✕ This is not a Shopify store. Cloneify only works with Shopify stores.', 'invalid');
+                }
+            } catch (e) {
+                showResult('❌ Invalid URL format. Please enter a valid website address (e.g., mystore.com)', 'warning');
+            }
+            
+            loading.style.display = 'none';
+        }
+
+        function showResult(message, type) {
+            const result = document.getElementById('result');
+            result.textContent = message;
+            result.classList.add(type);
+            result.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
